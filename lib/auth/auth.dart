@@ -104,7 +104,7 @@ class FirebaseAuthMethods {
           context,
           MaterialPageRoute(
             builder: (BuildContext context) =>
-               UserDetailsScreen(),
+               HomeScreenPage(),
           ),
         );
       } else {

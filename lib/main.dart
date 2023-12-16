@@ -31,7 +31,7 @@ class Login extends StatelessWidget {
         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             if (snapshot.data == true) {
-              return  UserDetailsScreen();
+              return  HomeScreenPage();
             } else {
               return const Welcome(); 
             }
