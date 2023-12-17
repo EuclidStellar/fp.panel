@@ -1,6 +1,333 @@
 
 
 
+
+
+
+
+
+import 'package:flutter/material.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class BarcodeScannerScreen extends StatefulWidget {
+  @override
+  _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+}
+
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+  String barcodeScanRes = "Click the button to scan barcode";
+
+  Future<void> scanBarcode() async {
+    String result = await FlutterBarcodeScanner.scanBarcode(
+      "#FF0000", // Color of the scanning line
+      "Cancel",  // Text for the cancel button
+      true,      // Show flash icon
+      ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+    );
+
+    if (!mounted) return;
+
+    // Add the user to the 'present' collection
+    await addPresentUser(result);
+
+    setState(() {
+      barcodeScanRes = result;
+    });
+  }
+
+  Future<void> addPresentUser(String uid) async {
+    try {
+      // Reference to the 'present' collection
+      CollectionReference presentCollection =
+          FirebaseFirestore.instance.collection('present');
+
+      // Example: Add user details to the 'present' collection
+      await presentCollection.add({'uid': uid});
+    } catch (error) {
+      print('Error adding present user: $error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Barcode Scanner Example'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Scanned Result:',
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Text(
+              barcodeScanRes,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: scanBarcode,
+        tooltip: 'Scan Barcode',
+        child: Icon(Icons.qr_code_scanner),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --------------------------------------------//
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   String barcodeScanRes = "Click the button to scan barcode";
+
+//   Future<void> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     if (!mounted) return;
+
+//     setState(() {
+//       barcodeScanRes = result;
+//     });
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Barcode Scanner Example'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               'Scanned Result:',
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 10),
+//             Text(
+//               barcodeScanRes,
+//               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//             ),
+//           ],
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: scanBarcode,
+//         tooltip: 'Scan Barcode',
+//         child: Icon(Icons.qr_code_scanner),
+//       ),
+//     );
+//   }
+// }
+
+
+
+
+// working code 
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   String barcodeScanRes = "Click the button to scan barcode";
+
+//   Future<void> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     if (!mounted) return;
+
+//     // Check if the QR code matches any user in the qr_codes collection
+//     await checkUserPresence(result);
+
+//     setState(() {
+//       barcodeScanRes = result;
+//     });
+//   }
+
+//   Future<void> checkUserPresence(String uid) async {
+//     try {
+//       // Reference to the qr_codes collection
+//       CollectionReference qrCodesCollection =
+//           FirebaseFirestore.instance.collection('qr_codes');
+
+//       // Get the document with the scanned UID
+//       DocumentSnapshot qrCodeDoc = await qrCodesCollection.doc(uid).get();
+
+//       if (qrCodeDoc.exists) {
+//         // UID exists in the qr_codes collection
+//         // Mark the user as present or add to the list of present users
+//         markUserAsPresent(qrCodeDoc);
+//       } else {
+//         // UID doesn't exist in the qr_codes collection
+//         // Handle accordingly (e.g., show an error message)
+//         print('User not found in the qr_codes collection');
+//         showUserNotFoundErrorDialog();
+//       }
+//     } catch (error) {
+//       print('Error checking user presence: $error');
+//     }
+//   }
+
+//   Future<void> markUserAsPresent(DocumentSnapshot qrCodeDoc) async {
+//     try {
+//       // Example: Update a 'present' field in the qr_codes collection
+//       await qrCodeDoc.reference.update({'present': true});
+
+//       // Display user details in a dialog
+//       showUserDetailsDialog(qrCodeDoc);
+//     } catch (error) {
+//       print('Error marking user as present: $error');
+//     }
+//   }
+
+//   void showUserDetailsDialog(DocumentSnapshot qrCodeDoc) {
+//     showDialog(
+//       context: context,
+//       builder: (BuildContext context) {
+//         return AlertDialog(
+//           title: Text('User Details'),
+//           content: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               Text('UID: ${qrCodeDoc.id}'),
+//               Text('QR Data: ${qrCodeDoc['qr_data']}'),
+//               // Add more user details as needed
+//             ],
+//           ),
+//           actions: [
+//             TextButton(
+//               onPressed: () {
+//                 Navigator.of(context).pop();
+//               },
+//               child: Text('Close'),
+//             ),
+//           ],
+//         );
+//       },
+//     );
+//   }
+
+//   void showUserNotFoundErrorDialog() {
+//     showDialog(
+//       context: context,
+//       builder: (BuildContext context) {
+//         return AlertDialog(
+//           title: Text('User Not Found'),
+//           content: Text('User not found in the qr_codes collection.'),
+//           actions: [
+//             TextButton(
+//               onPressed: () {
+//                 Navigator.of(context).pop();
+//               },
+//               child: Text('Close'),
+//             ),
+//           ],
+//         );
+//       },
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Barcode Scanner Example'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               'Scanned Result:',
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 10),
+//             Text(
+//               barcodeScanRes,
+//               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//             ),
+//           ],
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: scanBarcode,
+//         tooltip: 'Scan Barcode',
+//         child: Icon(Icons.qr_code_scanner),
+//       ),
+//     );
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // import 'dart:developer';
 // import 'dart:io';
 
@@ -293,28 +620,29 @@
 // // }
 
 
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 
-class QRScan extends StatefulWidget {
-  const QRScan({super.key});
+// class QRScan extends StatefulWidget {
+//   const QRScan({super.key});
 
-  @override
-  State<QRScan> createState() => _QRScanState();
-}
+//   @override
+//   State<QRScan> createState() => _QRScanState();
+// }
 
-class _QRScanState extends State<QRScan> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('QR Scanner'),
-      ),
-      body: const Center(
-        child: Text('QR Scanner'),
-      ),
-    );
-  }
-}
+// class _QRScanState extends State<QRScan> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('QR Scanner'),
+//       ),
+//       body: const Center(
+//         child: Text('QR Scanner'),
+//       ),
+//     );
+//   }
+// }
 
 
 // import 'package:flutter/material.dart';

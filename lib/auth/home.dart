@@ -17,7 +17,8 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
   final List<Widget> _pages = [
     // MembersTab(),
     UserDetailsScreen(),
-    QRScan(),
+   // QRScan(),
+   BarcodeScannerScreen(),
     NotificationScreen(),
    // QRScannerScreen(),
     // EventsTab(),
