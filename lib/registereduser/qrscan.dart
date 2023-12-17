@@ -295,14 +295,14 @@
 
 import 'package:flutter/material.dart';
 
-class QRscan extends StatefulWidget {
-  const QRscan({super.key});
+class QRScan extends StatefulWidget {
+  const QRScan({super.key});
 
   @override
-  State<QRscan> createState() => _QRscanState();
+  State<QRScan> createState() => _QRScanState();
 }
 
-class _QRscanState extends State<QRscan> {
+class _QRScanState extends State<QRScan> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -315,3 +315,85 @@ class _QRscanState extends State<QRscan> {
     );
   }
 }
+
+
+// import 'package:flutter/material.dart';
+// import 'package:qr_code_scanner/qr_code_scanner.dart';
+
+// class QRScan extends StatefulWidget {
+//   @override
+//   State<StatefulWidget> createState() => _QRScanState();
+// }
+
+// class _QRScanState extends State<QRScan> {
+//   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+//   late QRViewController controller;
+//   late String? scannedData ;
+
+//   @override
+//   void dispose() {
+//     controller.dispose();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('QR Code Scanner'),
+//       ),
+//       body: Column(
+//         children: <Widget>[
+//           Expanded(
+//             flex: 5,
+//             child: QRView(
+//               key: qrKey,
+//               onQRViewCreated: _onQRViewCreated,
+//             ),
+//           ),
+//           Expanded(
+//             flex: 1,
+//             child: Center(
+//               child: Text('Scanned Data: $scannedData'),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+//   void _onQRViewCreated(QRViewController controller) {
+//     this.controller = controller;
+//     controller.scannedDataStream.listen((scanData) {
+//       setState(() {
+//         scannedData = scanData.code;
+//       });
+
+//       // Navigate to a different screen and pass the scanned data
+//       Navigator.push(
+//         context,
+//         MaterialPageRoute(
+//           builder: (context) => ScannedDataScreen(scannedData: scannedData!),
+//         ),
+//       );
+//     });
+//   }
+// }
+
+// class ScannedDataScreen extends StatelessWidget {
+//   final String scannedData;
+
+//   ScannedDataScreen({required this.scannedData});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Scanned Data'),
+//       ),
+//       body: Center(
+//         child: Text('Scanned Data: $scannedData'),
+//       ),
+//     );
+//   }
+// }
