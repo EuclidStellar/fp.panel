@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fp_panel/drawer/chaynwork/chayanartworks.dart';
 import 'package:fp_panel/drawer/uploadpost.dart';
 import 'package:fp_panel/registereduser/messagesend.dart';
 import 'package:fp_panel/registereduser/qrscan.dart';
@@ -45,10 +46,10 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
             ListTile(
               title: const Text('Secrets ? '),
               onTap: () {
-          //         Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => SecretScreen()),
-          // ); // Close the drawer
+                  Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChayanWorkImages()),
+          ); // Close the drawer
                 // Navigate to the settings page or perform other actions
               },
             ),
