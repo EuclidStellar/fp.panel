@@ -1,11 +1,6 @@
 
 
 
-
-
-
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,9 +11,137 @@ class BarcodeScannerScreen extends StatefulWidget {
 }
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  String barcodeScanRes = "Click the button to scan barcode";
+  List<String> scannedUsers = [];
+  List<Map<String, dynamic>> fetchedUsers = [];
+  TextEditingController searchController = TextEditingController();
 
-  Future<void> scanBarcode() async {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          actions: [
+            IconButton(
+              onPressed: () async {
+                // Fetch user details from the 'present' collection
+                fetchUsers();
+              },
+              icon: Icon(Icons.refresh),
+            ),
+          ],
+          title: Text('Barcode Scanner Example'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Scanned Users'),
+              Tab(text: 'Fetched Users'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Scanned Users Tab
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (value) {
+                      // Filter scannedUsers based on the search query
+                      setState(() {
+                        scannedUsers = scannedUsers
+                            .where((user) =>
+                                user.toLowerCase().contains(value.toLowerCase()))
+                            .toList();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Search by Name',
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: scannedUsers.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(scannedUsers[index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // Fetched Users Tab
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (value) {
+                      // Filter fetchedUsers based on the search query
+                      setState(() {
+                        fetchedUsers = fetchedUsers
+                            .where((user) =>
+                                user['uid']
+                                    .toLowerCase()
+                                    .contains(value.toLowerCase()) ||
+                                user['timestamp']
+                                    .toLowerCase()
+                                    .contains(value.toLowerCase()))
+                            .toList();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Search by UID or Timestamp',
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: fetchedUsers.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(fetchedUsers[index]['uid']),
+                        subtitle: Text(
+                          'Timestamp: ${fetchedUsers[index]['timestamp']}',
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            String result = await scanBarcode();
+            if (result != null) {
+              // Add the scanned user details to the 'present' collection
+              addScannedUser(result);
+              setState(() {
+                scannedUsers.add(result);
+              });
+
+              // Fetch user details from the 'present' collection
+              fetchUsers();
+            }
+          },
+          tooltip: 'Scan Barcode',
+          child: Icon(Icons.qr_code_scanner),
+        ),
+      ),
+    );
+  }
+
+  Future<String> scanBarcode() async {
     String result = await FlutterBarcodeScanner.scanBarcode(
       "#FF0000", // Color of the scanning line
       "Cancel",  // Text for the cancel button
@@ -26,59 +149,681 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
     );
 
-    if (!mounted) return;
-
-    // Add the user to the 'present' collection
-    await addPresentUser(result);
-
-    setState(() {
-      barcodeScanRes = result;
-    });
+    return result;
   }
 
-  Future<void> addPresentUser(String uid) async {
+  Future<void> addScannedUser(String uid) async {
     try {
       // Reference to the 'present' collection
       CollectionReference presentCollection =
           FirebaseFirestore.instance.collection('present');
 
       // Example: Add user details to the 'present' collection
-      await presentCollection.add({'uid': uid});
+      await presentCollection.add({'uid': uid, 'timestamp': FieldValue.serverTimestamp()});
     } catch (error) {
-      print('Error adding present user: $error');
+      print('Error adding scanned user: $error');
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Barcode Scanner Example'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Scanned Result:',
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 10),
-            Text(
-              barcodeScanRes,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: scanBarcode,
-        tooltip: 'Scan Barcode',
-        child: Icon(Icons.qr_code_scanner),
-      ),
-    );
+  Future<void> fetchUsers() async {
+    try {
+      // Reference to the 'present' collection
+      CollectionReference presentCollection =
+          FirebaseFirestore.instance.collection('present');
+
+      // Fetch all documents from the 'present' collection
+      QuerySnapshot querySnapshot = await presentCollection.get();
+
+      // Clear the existing fetched users list
+      setState(() {
+        fetchedUsers = [];
+      });
+
+      // Add each user details to the fetchedUsers list
+      querySnapshot.docs.forEach((doc) {
+        setState(() {
+          fetchedUsers.add({
+            'uid': doc['uid'],
+            'timestamp': doc['timestamp'].toString(),
+          });
+        });
+      });
+    } catch (error) {
+      print('Error fetching users: $error');
+    }
   }
 }
+
+
+
+
+
+
+////// ----------------------------  working code ----------------------------//////
+
+
+
+
+
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   List<String> scannedUsers = [];
+//   List<Map<String, dynamic>> fetchedUsers = [];
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return DefaultTabController(
+//       length: 2,
+//       child: Scaffold(
+//         appBar: AppBar(
+//           title: Text('Barcode Scanner Example'),
+//           bottom: TabBar(
+//             tabs: [
+//               Tab(text: 'Scanned Users'),
+//               Tab(text: 'Fetched Users'),
+//             ],
+//           ),
+//         ),
+//         body: TabBarView(
+//           children: [
+//             // Scanned Users Tab
+//             Column(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Text(
+//                   'Scanned Users:',
+//                   style: TextStyle(fontSize: 18),
+//                 ),
+//                 SizedBox(height: 10),
+//                 Expanded(
+//                   child: ListView.builder(
+//                     itemCount: scannedUsers.length,
+//                     itemBuilder: (context, index) {
+//                       return ListTile(
+//                         title: Text(scannedUsers[index]),
+//                       );
+//                     },
+//                   ),
+//                 ),
+//               ],
+//             ),
+//             // Fetched Users Tab
+//             Column(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Text(
+//                   'Fetched Users:',
+//                   style: TextStyle(fontSize: 18),
+//                 ),
+//                 SizedBox(height: 10),
+//                 Expanded(
+//                   child: ListView.builder(
+//                     itemCount: fetchedUsers.length,
+//                     itemBuilder: (context, index) {
+//                       return ListTile(
+//                         title: Text(fetchedUsers[index]['uid']),
+//                         subtitle: Text(
+//                           'Timestamp: ${fetchedUsers[index]['timestamp']}',
+//                         ),
+//                       );
+//                     },
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ],
+//         ),
+//         floatingActionButton: FloatingActionButton(
+//           onPressed: () async {
+//             String result = await scanBarcode();
+//             if (result != null) {
+//               // Add the scanned user details to the 'present' collection
+//               addScannedUser(result);
+//               setState(() {
+//                 scannedUsers.add(result);
+//               });
+
+//               // Fetch user details from the 'present' collection
+//               fetchUsers();
+//             }
+//           },
+//           tooltip: 'Scan Barcode',
+//           child: Icon(Icons.qr_code_scanner),
+//         ),
+//       ),
+//     );
+//   }
+
+//   Future<String> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     return result;
+//   }
+
+//   Future<void> addScannedUser(String uid) async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Example: Add user details to the 'present' collection
+//       await presentCollection.add({'uid': uid, 'timestamp': FieldValue.serverTimestamp()});
+//     } catch (error) {
+//       print('Error adding scanned user: $error');
+//     }
+//   }
+
+//   Future<void> fetchUsers() async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Fetch all documents from the 'present' collection
+//       QuerySnapshot querySnapshot = await presentCollection.get();
+
+//       // Clear the existing fetched users list
+//       setState(() {
+//         fetchedUsers = [];
+//       });
+
+//       // Add each user details to the fetchedUsers list
+//       querySnapshot.docs.forEach((doc) {
+//         setState(() {
+//           fetchedUsers.add({
+//             'uid': doc['uid'],
+//             'timestamp': doc['timestamp'].toString(),
+//           });
+//         });
+//       });
+//     } catch (error) {
+//       print('Error fetching users: $error');
+//     }
+//   }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   List<String> scannedUsers = [];
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Barcode Scanner Example'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               'Scanned Users:',
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 10),
+//             Expanded(
+//               child: ListView.builder(
+//                 itemCount: scannedUsers.length,
+//                 itemBuilder: (context, index) {
+//                   return ListTile(
+//                     title: Text(scannedUsers[index]),
+//                   );
+//                 },
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () => scanBarcode(),
+//         tooltip: 'Scan Barcode',
+//         child: Icon(Icons.qr_code_scanner),
+//       ),
+//     );
+//   }
+
+//   Future<void> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     if (!mounted) return;
+
+//     // Add the scanned user details to the 'present' collection
+//     addScannedUser(result);
+
+//     setState(() {
+//       scannedUsers.add(result);
+//     });
+//   }
+
+//   Future<void> addScannedUser(String uid) async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Example: Add user details to the 'present' collection
+//       await presentCollection.add({'uid': uid, 'timestamp': FieldValue.serverTimestamp()});
+//     } catch (error) {
+//       print('Error adding scanned user: $error');
+//     }
+//   }
+// }
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   List<String> scannedUsers = [];
+//   List<Map<String, dynamic>> fetchedUsers = [];
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Barcode Scanner Example'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               'Scanned Users:',
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 10),
+//             Expanded(
+//               child: ListView.builder(
+//                 itemCount: scannedUsers.length,
+//                 itemBuilder: (context, index) {
+//                   return ListTile(
+//                     title: Text(scannedUsers[index]),
+//                   );
+//                 },
+//               ),
+//             ),
+//             SizedBox(height: 20),
+//             Text(
+//               'Fetched Users:',
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 10),
+//             Expanded(
+//               child: ListView.builder(
+//                 itemCount: fetchedUsers.length,
+//                 itemBuilder: (context, index) {
+//                   return ListTile(
+//                     title: Text(fetchedUsers[index]['uid']),
+//                     subtitle: Text(
+//                       'Timestamp: ${fetchedUsers[index]['timestamp']}',
+//                     ),
+//                   );
+//                 },
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () async {
+//           String result = await scanBarcode();
+//           if (result != null) {
+//             // Add the scanned user details to the 'present' collection
+//             addScannedUser(result);
+//             setState(() {
+//               scannedUsers.add(result);
+//             });
+
+//             // Fetch user details from the 'present' collection
+//             fetchUsers();
+//           }
+//         },
+//         tooltip: 'Scan Barcode',
+//         child: Icon(Icons.qr_code_scanner),
+//       ),
+//     );
+//   }
+
+//   Future<String> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     return result;
+//   }
+
+//   Future<void> addScannedUser(String uid) async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Example: Add user details to the 'present' collection
+//       await presentCollection.add({'uid': uid, 'timestamp': FieldValue.serverTimestamp()});
+//     } catch (error) {
+//       print('Error adding scanned user: $error');
+//     }
+//   }
+
+//   Future<void> fetchUsers() async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Fetch all documents from the 'present' collection
+//       QuerySnapshot querySnapshot = await presentCollection.get();
+
+//       // Clear the existing fetched users list
+//       setState(() {
+//         fetchedUsers = [];
+//       });
+
+//       // Add each user details to the fetchedUsers list
+//       querySnapshot.docs.forEach((doc) {
+//         setState(() {
+//           fetchedUsers.add({
+//             'uid': doc['uid'],
+//             'timestamp': doc['timestamp'].toString(),
+//           });
+//         });
+//       });
+//     } catch (error) {
+//       print('Error fetching users: $error');
+//     }
+//   }
+// }
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   List<String> scannedUsers = [];
+//   List<Map<String, dynamic>> fetchedUsers = [];
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return DefaultTabController(
+//       length: 2,
+//       child: Scaffold(
+//         appBar: AppBar(
+//           actions: [
+//             IconButton(
+//               onPressed: () async {
+//                 // Fetch user details from the 'present' collection
+//                 fetchUsers();
+//               },
+//               icon: Icon(Icons.refresh),
+//             ),
+//           ],
+//           title: Text('Barcode Scanner Example'),
+//           bottom: TabBar(
+//             tabs: [
+//               Tab(text: 'Scanned Users'),
+//               Tab(text: 'Fetched Users'),
+//             ],
+//           ),
+//         ),
+//         body: TabBarView(
+//           children: [
+//             // Scanned Users Tab
+//             Column(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Text(
+//                   'Scanned Users:',
+//                   style: TextStyle(fontSize: 18),
+//                 ),
+//                 SizedBox(height: 10),
+//                 Expanded(
+//                   child: ListView.builder(
+//                     itemCount: scannedUsers.length,
+//                     itemBuilder: (context, index) {
+//                       return ListTile(
+//                         title: Text(scannedUsers[index]),
+//                       );
+//                     },
+//                   ),
+//                 ),
+//               ],
+//             ),
+//             // Fetched Users Tab
+//             Column(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Text(
+//                   'Fetched Users:',
+//                   style: TextStyle(fontSize: 18),
+//                 ),
+//                 SizedBox(height: 10),
+//                 Expanded(
+//                   child: ListView.builder(
+//                     itemCount: fetchedUsers.length,
+//                     itemBuilder: (context, index) {
+//                       return ListTile(
+//                         title: Text(fetchedUsers[index]['uid']),
+//                         subtitle: Text(
+//                           'Timestamp: ${fetchedUsers[index]['timestamp']}',
+//                         ),
+//                       );
+//                     },
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ],
+//         ),
+//         floatingActionButton: FloatingActionButton(
+//           onPressed: () async {
+//             String result = await scanBarcode();
+//             if (result != null) {
+//               // Add the scanned user details to the 'present' collection
+//               addScannedUser(result);
+//               setState(() {
+//                 scannedUsers.add(result);
+//               });
+
+//               // Fetch user details from the 'present' collection
+//               fetchUsers();
+//             }
+//           },
+//           tooltip: 'Scan Barcode',
+//           child: Icon(Icons.qr_code_scanner),
+//         ),
+//       ),
+//     );
+//   }
+
+//   Future<String> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     return result;
+//   }
+
+//   Future<void> addScannedUser(String uid) async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Example: Add user details to the 'present' collection
+//       await presentCollection.add({'uid': uid, 'timestamp': FieldValue.serverTimestamp()});
+//     } catch (error) {
+//       print('Error adding scanned user: $error');
+//     }
+//   }
+
+//   Future<void> fetchUsers() async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Fetch all documents from the 'present' collection
+//       QuerySnapshot querySnapshot = await presentCollection.get();
+
+//       // Clear the existing fetched users list
+//       setState(() {
+//         fetchedUsers = [];
+//       });
+
+//       // Add each user details to the fetchedUsers list
+//       querySnapshot.docs.forEach((doc) {
+//         setState(() {
+//           fetchedUsers.add({
+//             'uid': doc['uid'],
+//             'timestamp': doc['timestamp'].toString(),
+//           });
+//         });
+//       });
+//     } catch (error) {
+//       print('Error fetching users: $error');
+//     }
+//   }
+// }
+
+
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
+// class BarcodeScannerScreen extends StatefulWidget {
+//   @override
+//   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
+// }
+
+// class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+//   String barcodeScanRes = "Click the button to scan barcode";
+
+//   Future<void> scanBarcode() async {
+//     String result = await FlutterBarcodeScanner.scanBarcode(
+//       "#FF0000", // Color of the scanning line
+//       "Cancel",  // Text for the cancel button
+//       true,      // Show flash icon
+//       ScanMode.BARCODE, // Scan mode (BARCODE, QR)
+//     );
+
+//     if (!mounted) return;
+
+//     // Add the user to the 'present' collection
+//     await addPresentUser(result);
+
+//     setState(() {
+//       barcodeScanRes = result;
+//     });
+//   }
+
+//   Future<void> addPresentUser(String uid) async {
+//     try {
+//       // Reference to the 'present' collection
+//       CollectionReference presentCollection =
+//           FirebaseFirestore.instance.collection('present');
+
+//       // Example: Add user details to the 'present' collection
+//       await presentCollection.add({'uid': uid});
+//     } catch (error) {
+//       print('Error adding present user: $error');
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Barcode Scanner Example'),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               'Scanned Result:',
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 10),
+//             Text(
+//               barcodeScanRes,
+//               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//             ),
+//           ],
+//         ),
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: scanBarcode,
+//         tooltip: 'Scan Barcode',
+//         child: Icon(Icons.qr_code_scanner),
+//       ),
+//     );
+//   }
+// }
 
 
 
@@ -205,6 +950,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
 //       // Get the document with the scanned UID
 //       DocumentSnapshot qrCodeDoc = await qrCodesCollection.doc(uid).get();
+//       print('qrCodeDoc: $qrCodeDoc');
 
 //       if (qrCodeDoc.exists) {
 //         // UID exists in the qr_codes collection
