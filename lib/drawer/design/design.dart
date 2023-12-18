@@ -49,8 +49,8 @@ class _DesignState extends State<Design> {
 
     try {
       for (File imageFile in _selectedImages) {
-        String downloadURL = await uploadImageToFirebaseStorage(imageFile);
-        await saveImageMetadataToFirestore(downloadURL, name, description);
+        String downloadURL = await uploadImageToFirebaseStoragedesign(imageFile);
+        await saveImageMetadataToFirestoredesign(downloadURL, name, description);
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -67,7 +67,7 @@ class _DesignState extends State<Design> {
     }
   }
 
-  Future<String> uploadImageToFirebaseStorage(File imageFile) async {
+  Future<String> uploadImageToFirebaseStoragedesign(File imageFile) async {
     FirebaseStorage storage = FirebaseStorage.instance;
     Reference storageReference =
         storage.ref().child('design/${DateTime.now()}.png');
@@ -79,7 +79,7 @@ class _DesignState extends State<Design> {
     return await snapshot.ref.getDownloadURL();
   }
 
-  Future<void> saveImageMetadataToFirestore(
+  Future<void> saveImageMetadataToFirestoredesign(
     String downloadURL,
     String name,
     String description,

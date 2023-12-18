@@ -86,7 +86,7 @@ class _PhotographyState extends State<Photography> {
   ) async {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-    await firestore.collection('photography').add({
+    await firestore.collection('photodd').add({
       'name': name,
       'description': description,
       'image_url': downloadURL,

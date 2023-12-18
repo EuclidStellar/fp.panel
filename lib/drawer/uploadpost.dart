@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fp_panel/drawer/art/art.dart';
+import 'package:fp_panel/drawer/design/design.dart';
 import 'package:fp_panel/drawer/literary/litrary.dart';
+import 'package:fp_panel/drawer/photography/photo.dart';
 
 
 class ArtWorksTab extends StatelessWidget {
@@ -35,7 +38,7 @@ class ArtWorksTab extends StatelessWidget {
                   _buildGridItem(
                     context,
                     'Art',
-                    Literary(),
+                    Art(),
                     //Art(),
                     Icons.brush_outlined,
                     Colors.green,
@@ -43,7 +46,7 @@ class ArtWorksTab extends StatelessWidget {
                   _buildGridItem(
                     context,
                     'Photography',
-                    Literary(),
+                    Photography(),
                   // Photography(),
                     Icons.camera,
                     Colors.orange,
@@ -51,7 +54,7 @@ class ArtWorksTab extends StatelessWidget {
                   _buildGridItem(
                     context,
                     'Design',
-                    Literary(),
+                    Design(),
                     //Design(),
                     Icons.design_services_outlined,
                     const Color.fromARGB(247, 234, 102, 102),
