@@ -21,6 +21,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           actions: [
             IconButton(
               onPressed: () async {
