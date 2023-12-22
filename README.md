@@ -1,4 +1,4 @@
-# fp_panel
+# FP Admin
 
 A new Flutter project.
 
